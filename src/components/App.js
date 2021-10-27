@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import { useState, useEffect } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import s from "./Searchbar/Searchbar.module.css";
@@ -9,112 +9,97 @@ import Button from "./Button/Button";
 import imageAPI from "../services/image-api";
 import Spinner from "./Spinner/Spinner";
 
-class App extends Component {
-  state = {
-    page: 1,
-    data: [],
-    query: null,
-    error: null,
-    showModal: false,
-    largeImg: "",
-    status: "idle",
-  };
+function App() {
+  const [page, setPage] = useState(1);
+  const [data, setData] = useState([]);
+  const [query, setQuery] = useState("");
+  // eslint-disable-next-line no-unused-vars
+  const [error, setError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [largeImg, setLargeImg] = useState("");
+  const [status, setStatus] = useState("idle");
 
-  componentDidUpdate(prevProps, prevState) {
-    window.scrollTo({
-      top: document.documentElement.scrollHeight,
-      behavior: "smooth",
-    });
-
-    const prevQuery = prevState.query;
-    const nextQuery = this.state.query;
-    const prevPage = prevState.page;
-    const nextPage = this.state.page;
-
-    if (prevPage !== nextPage || prevQuery !== nextQuery) {
-      this.setState({ status: "pending" });
-      imageAPI
-        .fetchImage(nextQuery, nextPage)
-        .then(({ hits }) => {
-          this.setState((prevState) => ({
-            data: [
-              ...prevState.data,
-              ...hits.map(({ id, webformatURL, largeImageURL }) => ({
-                id,
-                webformatURL,
-                largeImageURL,
-              })),
-            ],
-          }));
-        })
-        .catch((error) => this.setState({ error, status: "rejected" }))
-        .finally(() => this.setState({ status: "resolved" }));
+  useEffect(() => {
+    if (query === "") {
+      return;
     }
-  }
+    setStatus("pending");
+    imageAPI
+      .fetchImage(query, page)
+      .then(({ hits }) => {
+        setData([
+          ...data,
+          ...hits.map(({ id, webformatURL, largeImageURL }) => ({
+            id,
+            webformatURL,
+            largeImageURL,
+          })),
+        ]);
+      })
+      .catch((error) => setError(error))
+      .finally(() => setStatus("resolved"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, page]);
 
-  handleSubmit = (query) => {
-    this.resetPage();
-    this.setState({ query });
+  window.scrollTo({
+    top: document.documentElement.scrollHeight,
+    behavior: "smooth",
+  });
+
+  const handleSubmit = (query) => {
+    resetPage();
+    setQuery(query);
   };
 
-  resetPage = () => {
-    this.setState({
-      page: 1,
-      data: [],
-      showModal: false,
-      status: "idle",
-    });
+  const resetPage = () => {
+    setPage(1);
+    setData([]);
+    setShowModal(false);
+    setStatus("idle");
   };
 
-  handleLoadMore = () => {
-    this.setState(({ page }) => ({
-      page: page + 1,
-    }));
+  const handleLoadMore = () => {
+    setPage((page) => page + 1);
   };
 
-  handleLargeImage = (event) => {
-    this.setState({ showModal: true, largeImg: event.currentTarget.alt });
+  const handleLargeImage = (event) => {
+    setShowModal(true);
+    setLargeImg(event.currentTarget.alt);
   };
 
-  toggleModal = () => {
-    this.setState(({ showModal }) => ({ showModal: !showModal }));
+  const toggleModal = () => {
+    setShowModal(!showModal);
   };
 
-  render() {
-    const { data, status, showModal, query } = this.state;
+  return (
+    <div className="App">
+      <Searchbar onSubmit={handleSubmit} />
 
-    return (
-      <div className="App">
-        <Searchbar onSubmit={this.handleSubmit} />
+      {status === "idle" && (
+        <h1 className={s.SearchbarTitle}>Введите запрос</h1>
+      )}
 
-        {status === "idle" && (
-          <h1 className={s.SearchbarTitle}>Введите запрос</h1>
-        )}
+      {data.length > 0 && (
+        <ImageGallery data={data} handleLargeImage={handleLargeImage} />
+      )}
 
-        {data.length > 0 && (
-          <ImageGallery data={data} handleLargeImage={this.handleLargeImage} />
-        )}
+      {data.length >= 12 && status === "resolved" && (
+        <Button handleLoadMore={handleLoadMore} />
+      )}
 
-        {data.length >= 12 && status === "resolved" && (
-          <Button handleLoadMore={this.handleLoadMore} />
-        )}
+      {data.length === 0 && status === "resolved" && (
+        <h2 className={s.SearchbarTitle}>
+          По запросу "{query}" ничего не найдено
+        </h2>
+      )}
 
-        {data.length === 0 && status === "resolved" && (
-          <h2 className={s.SearchbarTitle}>
-            По запросу "{query}" ничего не найдено
-          </h2>
-        )}
+      {showModal && <Modal largeImg={largeImg} onClose={toggleModal} />}
 
-        {showModal && (
-          <Modal largeImg={this.state.largeImg} onClose={this.toggleModal} />
-        )}
+      {status === "pending" && <Spinner />}
 
-        {status === "pending" && <Spinner />}
-
-        <ToastContainer autoClose={3000} />
-      </div>
-    );
-  }
+      <ToastContainer autoClose={3000} />
+    </div>
+  );
 }
 
 export default App;
