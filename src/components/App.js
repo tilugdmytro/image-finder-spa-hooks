@@ -41,10 +41,10 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, page]);
 
-  window.scrollTo({
-    top: document.documentElement.scrollHeight,
-    behavior: "smooth",
-  });
+  // window.scrollTo({
+  //   top: document.documentElement.scrollHeight,
+  //   behavior: "smooth",
+  // });
 
   const handleSubmit = (query) => {
     resetPage();
