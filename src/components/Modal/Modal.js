@@ -25,9 +25,13 @@ function Modal({ onClose, largeImg }) {
     }
   };
 
+  const handleOverlayClick = () => {
+    onClose();
+  };
+
   return createPortal(
     <div className={s.Overlay} onClick={handleBackdropClick}>
-      <div className={s.Modal}>
+      <div className={s.Modal} onClick={handleOverlayClick}>
         <img src={largeImg} alt="" />
       </div>
     </div>,
